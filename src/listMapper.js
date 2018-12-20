@@ -30,7 +30,6 @@ class SelectableList extends React.Component {
 		this.setState({ items: newItems });
 	}
 	componentWillReceiveProps(newProps) {
-		console.log("componentWillReceiveProps ", newProps);
 		this.setState({ items: newProps.items });
 	}
 	render() {
@@ -46,6 +45,7 @@ class SelectableList extends React.Component {
 				{this.state.items.map(function(item) {
 					return (
 						<li
+							key={item.value}
 							data-value={item.value}
 							draggable="true"
 							onClick={toggle}
