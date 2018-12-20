@@ -17,13 +17,16 @@ export default class App extends React.Component {
 			],
 			sourceList: [
 				{ label: "Three", value: 3, selected: false },
-				{ label: "Four", value: 4, selected: false }
+				{ label: "Four", value: 4, selected: false },
+				{ label: "Five", value: 5, selected: false },
+				{ label: "Six", value: 6, selected: false },
+				{ label: "Seven", value: 7, selected: false }
 			]
 		};
 
 		return (
 			<div className="App">
-				<h1>Hello CodeSandbox</h1>
+				<h1>List Mapping</h1>
 				<ListMapper data={data} />
 			</div>
 		);

@@ -1,7 +1,7 @@
 {
   "name": "listmapper",
   "version": "1.0.0",
-  "description": "",
+  "description": "Two lists with controls to move items back and forth.",
   "keywords": [],
   "main": "src/index.js",
   "dependencies": {

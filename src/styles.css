@@ -1,4 +1,25 @@
 .App {
-  font-family: sans-serif;
-  text-align: center;
+	font-family: sans-serif;
+	text-align: center;
+}
+.list-mapper-button-bar button {
+	display: block;
+	width: 100%;
+	border-radius: 0;
+}
+
+.list-mapper .selected-item {
+	background-color: #6060c0;
+	color: white;
+	border: 1px solid #202080;
+	text-align: left;
+	padding: 3px;
+}
+
+.list-mapper .selectable-item {
+	background-color: inherited;
+	color: inherited;
+	border: 1px solid #eaeaea;
+	text-align: left;
+	padding: 3px;
 }
