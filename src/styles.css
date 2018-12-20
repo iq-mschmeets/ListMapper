@@ -1,6 +1,7 @@
 .App {
 	font-family: sans-serif;
 	text-align: center;
+	margin: 15px;
 }
 .list-mapper-button-bar button {
 	display: block;
@@ -9,9 +10,9 @@
 }
 
 .list-mapper .selected-item {
-	background-color: #6060c0;
+	background-color: #7abc1e;
 	color: white;
-	border: 1px solid #202080;
+	border: 1px solid #7abc1e;
 	text-align: left;
 	padding: 3px;
 }

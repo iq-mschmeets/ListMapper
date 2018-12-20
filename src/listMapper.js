@@ -1,11 +1,10 @@
 import React from "react";
 import ReactDOM from "react-dom";
 
-class SelectableListItem extends React.Component {
-	constructor() {}
-	render() {
-		return null;
-	}
+function compare(a, b) {
+	if (a.label < b.label) return -1;
+	if (a.label > b.label) return 1;
+	return 0;
 }
 
 class SelectableList extends React.Component {
@@ -35,8 +34,8 @@ class SelectableList extends React.Component {
 	render() {
 		const lStyle = {
 			height: "100%",
-			minHeight: 200,
-			width: "40%",
+			minHeight: 300,
+			width: "38%",
 			border: "1px solid rgb(220,220,220)"
 		};
 		const toggle = this.toggleSelection;
@@ -62,7 +61,12 @@ class SelectableList extends React.Component {
 
 class ButtonBar extends React.Component {
 	render() {
-		const barStyle = { width: "20%" };
+		const barStyle = {
+			width: "20%",
+			display: "flex",
+			flexDirection: "column",
+			justifyContent: "center"
+		};
 		return (
 			<div style={barStyle} className="list-mapper-button-bar">
 				<button
@@ -102,8 +106,8 @@ export default class ListMapper extends React.Component {
 		this.selectedTargets = [];
 
 		this.state = {
-			selectedItems: props.data.targetList,
-			selectableItems: props.data.sourceList
+			selectedItems: props.data.targetList.sort(compare),
+			selectableItems: props.data.sourceList.sort(compare)
 		};
 		this.moveSelectedFromSourceToTarget = this.moveSelectedFromSourceToTarget.bind(
 			this
@@ -118,17 +122,17 @@ export default class ListMapper extends React.Component {
 	}
 	moveAllToTarget() {
 		this.setState({
-			selectedItems: this.state.selectedItems.concat(
-				this.state.selectableItems
-			),
+			selectedItems: this.state.selectedItems
+				.concat(this.state.selectableItems)
+				.sort(compare),
 			selectableItems: []
 		});
 	}
 	moveAllToSource() {
 		this.setState({
-			selectableItems: this.state.selectedItems.concat(
-				this.state.selectableItems
-			),
+			selectableItems: this.state.selectedItems
+				.concat(this.state.selectableItems)
+				.sort(compare),
 			selectedItems: []
 		});
 	}
@@ -156,8 +160,8 @@ export default class ListMapper extends React.Component {
 		this.selectedSources = [];
 
 		this.setState({
-			selectedItems: newTarget,
-			selectableItems: newSource
+			selectedItems: newTarget.sort(compare),
+			selectableItems: newSource.sort(compare)
 		});
 	}
 	moveSelectedFromTargetToSource() {
@@ -184,8 +188,8 @@ export default class ListMapper extends React.Component {
 		this.selectedSources = [];
 
 		this.setState({
-			selectedItems: newTarget,
-			selectableItems: newSource
+			selectedItems: newTarget.sort(compare),
+			selectableItems: newSource.sort(compare)
 		});
 	}
 	sourceSelect(obj) {
@@ -197,7 +201,7 @@ export default class ListMapper extends React.Component {
 	componentWillReceiveProps(newProps) {}
 	render() {
 		const containerStyle = {
-			width: "70%",
+			width: "100%",
 			display: "flex",
 			flexWrap: "wrap",
 			justifyContent: "space-between",
