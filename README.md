@@ -1,2 +1,0 @@
-# ListMapper
-Created with CodeSandbox
