@@ -6,15 +6,64 @@ function compare(a, b) {
 	if (a.label > b.label) return 1;
 	return 0;
 }
+class SelectableListItem extends React.Component {
+	constructor(props) {
+		super(props);
 
+		this.onDragStart = this.onDragStart.bind(this);
+		this.onDragEnd = this.onDragEnd.bind(this);
+		this.toggleSelection = this.toggleSelection.bind(this);
+	}
+	onDragEnd(evt) {
+		console.log("onDragEnd ");
+	}
+	onDragStart(evt) {
+		console.log("onDragStart ", this.props);
+		evt.persist();
+
+		//evt.dataTransfer.setData("text/plain", this.props.row.toString());
+		evt.dataTransfer.setData(
+			"text/plain",
+			JSON.stringify({
+				item: this.props.item
+			})
+		);
+		evt.dataTransfer.dropEffect = "move";
+	}
+	toggleSelection(evt) {
+		if (this.props.hasOwnProperty("onSelect")) {
+			this.props.onSelect(this.props.item);
+		}
+	}
+	render() {
+		return (
+			<li
+				key={this.props.item.value}
+				data-value={this.props.item.value}
+				draggable="true"
+				onClick={this.toggleSelection}
+				tabIndex="0"
+				onDragStart={this.onDragStart}
+				onDragEnd={this.onDragEnd}
+				className={this.props.selected ? "selected-item" : "selectable-item"}
+			>
+				{this.props.item.label}
+			</li>
+		);
+	}
+}
 class SelectableList extends React.Component {
 	constructor(props) {
 		super(props);
 		this.toggleSelection = this.toggleSelection.bind(this);
+		this.onDragEnter = this.onDragEnter.bind(this);
+		this.onDragOver = this.onDragOver.bind(this);
+		this.onDragLeave = this.onDragLeave.bind(this);
+		this.onDrop = this.onDrop.bind(this);
 		this.state = { items: this.props.items };
 	}
 	toggleSelection(evt) {
-		let id = evt.target.dataset.value;
+		let id = evt.value;
 		let result = this.state.items.findIndex(function(item) {
 			return item.value == id;
 		});
@@ -32,34 +81,88 @@ class SelectableList extends React.Component {
 		this.setState({ items: newProps.items });
 	}
 	render() {
+		const _this = this;
 		const lStyle = {
 			height: "100%",
 			minHeight: 300,
-			width: "38%",
-			border: "1px solid rgb(220,220,220)"
+			maxHeight: 600,
+			width: "100%",
+			border: "1px solid rgb(220,220,220)",
+			overflowY: "auto"
 		};
-		const toggle = this.toggleSelection;
+
 		return (
-			<ul className="list-unstyled" style={lStyle}>
+			<ul
+				className="list-unstyled"
+				style={lStyle}
+				onDragEnter={_this.onDragEnter}
+				onDragOver={_this.onDragOver}
+				onDrop={_this.onDrop}
+				onDragLeave={_this.onDragLeave}
+			>
 				{this.state.items.map(function(item) {
 					return (
-						<li
+						<SelectableListItem
 							key={item.value}
-							data-value={item.value}
-							draggable="true"
-							onClick={toggle}
-							className={item.selected ? "selected-item" : "selectable-item"}
-						>
-							{item.label}
-						</li>
+							item={item}
+							selected={item.selected}
+							onSelect={_this.toggleSelection}
+						/>
 					);
 				})}
 			</ul>
 		);
 	}
+	onDragEnter(evt) {
+		if (this.props.droppable) {
+			evt.preventDefault();
+			console.log("onDragEnter ", evt, evt.currentTarget);
+		}
+	}
+	onDragOver(evt) {
+		if (this.props.droppable) {
+			evt.preventDefault();
+			evt.dataTransfer.dropEffect = "move";
+			this.setState({ dragState: "dragging" });
+		}
+	}
+
+	// onDragEnd(evt) {
+	// 	console.log("onDragEnd ", evt, evt.currentTarget);
+	// 	this.setState({ dragState: null });
+	// }
+	onDragLeave(evt) {
+		if (this.props.droppable) {
+			evt.preventDefault();
+			this.setState({ dragState: null });
+		}
+	}
+	onDrop(evt) {
+		if (this.props.droppable) {
+			evt.preventDefault();
+			evt.dataTransfer.dropEffect = "move";
+			let data = JSON.parse(evt.dataTransfer.getData("text/plain"));
+			let action = {
+				action: "LIST_ITEM_DROP",
+				data: data
+			};
+			console.log("onDrop ", action);
+			// this.createLink(action);
+			if (this.props.dispatcher) {
+				this.props.dispatcher.trigger("LIST_ITEM_DROP", action);
+			}
+			if (this.props.hasOwnProperty("onDrop")) {
+				this.props.onDrop(action);
+			}
+			this.setState({ dragState: null });
+		}
+	}
 }
 
 class ButtonBar extends React.Component {
+	constructor(props) {
+		super(props);
+	}
 	render() {
 		const barStyle = {
 			width: "20%",
@@ -117,6 +220,7 @@ export default class ListMapper extends React.Component {
 		);
 		this.sourceSelect = this.sourceSelect.bind(this);
 		this.targetSelect = this.targetSelect.bind(this);
+		this.moveToTarget = this.moveToTarget.bind(this);
 		this.moveAllToTarget = this.moveAllToTarget.bind(this);
 		this.moveAllToSource = this.moveAllToSource.bind(this);
 	}
@@ -137,6 +241,7 @@ export default class ListMapper extends React.Component {
 		});
 	}
 	moveSelectedFromSourceToTarget() {
+		console.log("moveSelecteFromSourToTarg ", this.selectedSources);
 		let sources = this.selectedSources;
 		let newSource = this.state.selectableItems.filter(function(item) {
 			return sources.findIndex(function(source) {
@@ -147,7 +252,7 @@ export default class ListMapper extends React.Component {
 		});
 
 		let newTarget = this.state.selectedItems.concat(this.selectedSources);
-
+		console.log("moveSelectedFromSourceToTarget ", newTarget, newSource);
 		newSource.forEach(function(item) {
 			item.selected = false;
 		});
@@ -155,7 +260,6 @@ export default class ListMapper extends React.Component {
 		newTarget.forEach(function(item) {
 			item.selected = false;
 		});
-
 		this.selectedTargets = [];
 		this.selectedSources = [];
 
@@ -198,6 +302,11 @@ export default class ListMapper extends React.Component {
 	targetSelect(obj) {
 		this.selectedTargets = this.selectedTargets.concat([obj]);
 	}
+	moveToTarget(evt) {
+		console.log("onDrop==>moveToTarget ", evt);
+		this.selectedSources.push(evt.data.item);
+		this.moveSelectedFromSourceToTarget();
+	}
 	componentWillReceiveProps(newProps) {}
 	render() {
 		const containerStyle = {
@@ -209,20 +318,29 @@ export default class ListMapper extends React.Component {
 		};
 		return (
 			<div style={containerStyle} className="list-mapper">
-				<SelectableList
-					items={this.state.selectedItems}
-					onSelect={this.targetSelect}
-				/>
+				<div style={{ width: "38%" }}>
+					<h4>Linked</h4>
+					<SelectableList
+						items={this.state.selectedItems}
+						onSelect={this.targetSelect}
+						droppable={true}
+						onDrop={this.moveToTarget}
+					/>
+				</div>
 				<ButtonBar
 					moveSelectedSourceToTarget={this.moveSelectedFromSourceToTarget}
 					moveSelectedTargetToSource={this.moveSelectedFromTargetToSource}
 					moveAllToTarget={this.moveAllToTarget}
 					moveAllToSource={this.moveAllToSource}
 				/>
-				<SelectableList
-					items={this.state.selectableItems}
-					onSelect={this.sourceSelect}
-				/>
+				<div style={{ width: "38%" }}>
+					<h4>Not Linked</h4>
+					<SelectableList
+						items={this.state.selectableItems}
+						onSelect={this.sourceSelect}
+						droppable={false}
+					/>
+				</div>
 			</div>
 		);
 	}
