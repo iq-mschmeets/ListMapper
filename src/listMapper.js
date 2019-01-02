@@ -283,6 +283,7 @@ class ButtonBar extends React.Component {
 		);
 	}
 }
+
 function SizeBadge(props) {
 	return React.createElement(
 		"div",
@@ -290,6 +291,7 @@ function SizeBadge(props) {
 		React.createElement("span", { className: "badge" }, props.count)
 	);
 }
+
 export default class ListMapper extends React.Component {
 	constructor(props) {
 		super(props);
