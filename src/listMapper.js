@@ -12,6 +12,7 @@ class SelectableListItem extends React.Component {
 
 		this.onDragStart = this.onDragStart.bind(this);
 		this.onDragEnd = this.onDragEnd.bind(this);
+		this.onKeyPress = this.onKeyPress.bind(this);
 		this.toggleSelection = this.toggleSelection.bind(this);
 	}
 	onDragEnd(evt) {
@@ -35,6 +36,13 @@ class SelectableListItem extends React.Component {
 			this.props.onSelect(this.props.item);
 		}
 	}
+	onKeyPress(evt) {
+		let keycode = evt.keyCode ? evt.keyCode : evt.which;
+		if (keycode == 13) {
+			evt.preventDefault();
+			this.toggleSelection(evt);
+		}
+	}
 	render() {
 		return (
 			<li
@@ -42,6 +50,7 @@ class SelectableListItem extends React.Component {
 				data-value={this.props.item.value}
 				draggable="true"
 				onClick={this.toggleSelection}
+				onKeyPress={this.onKeyPress}
 				tabIndex="0"
 				onDragStart={this.onDragStart}
 				onDragEnd={this.onDragEnd}
@@ -49,6 +58,74 @@ class SelectableListItem extends React.Component {
 			>
 				{this.props.item.label}
 			</li>
+		);
+	}
+}
+
+class FilterBar extends React.Component {
+	constructor(props) {
+		super(props);
+		this.onFilter = this.onFilter.bind(this);
+	}
+	onFilter(evt) {
+		if (this.props.onFilter) {
+			this.props.onFilter(evt.target.value);
+		}
+	}
+	render() {
+		return React.createElement(
+			"div",
+			{ className: "form-group", style: { marginBottom: 5 } },
+			React.createElement("input", {
+				className: "form-control",
+				type: "search",
+				defaultValue: this.props.filterValue,
+				value: this.props.filterValue,
+				onChange: this.onFilter,
+				placeholder: "filter list",
+				style: { borderRadius: 0 }
+			})
+		);
+	}
+}
+class FilteredSelectableList extends React.Component {
+	constructor(props) {
+		super(props);
+		this.onFilter = this.onFilter.bind(this);
+		this.state = {
+			filterText: "",
+			items: props.items
+		};
+	}
+	onFilter(txt) {
+		if (txt == null || txt.length < 1) {
+			this.setState({ filterText: "", items: this.props.items });
+		} else {
+			let re = new RegExp(txt, "i");
+			let filteredItems = this.props.items.filter(function(item) {
+				return re.test(item.label);
+			});
+			this.setState({ filterText: txt, items: filteredItems });
+		}
+	}
+	componentWillReceiveProps(newProps) {
+		this.setState({ items: newProps.items, filterText: "" });
+	}
+	render() {
+		const _this = this;
+		const updatedChildren = React.Children.map(this.props.children, function(
+			child
+		) {
+			return React.cloneElement(child, _this.state);
+		});
+		return (
+			<div>
+				<FilterBar
+					onFilter={this.onFilter}
+					filterValue={this.state.filterText}
+				/>
+				{updatedChildren}
+			</div>
 		);
 	}
 }
@@ -297,9 +374,25 @@ export default class ListMapper extends React.Component {
 		});
 	}
 	sourceSelect(obj) {
-		this.selectedSources = this.selectedSources.concat([obj]);
+		let index = this.selectedSources.findIndex(function(target) {
+			return target.value === obj.value;
+		});
+		if (index >= 0) {
+			this.selectedSources = this.selectedSources.splice(index, 0, obj);
+		} else {
+			this.selectedSources = this.selectedSources.concat([obj]);
+		}
 	}
 	targetSelect(obj) {
+		let index = this.selectedTargets.findIndex(function(target) {
+			return target.value === obj.value;
+		});
+		if (index >= 0) {
+			this.selectedTargets = this.selectedTargets.splice(index, 0, obj);
+		} else {
+			this.selectedTargets = this.selectedTargets.concat([obj]);
+		}
+
 		this.selectedTargets = this.selectedTargets.concat([obj]);
 	}
 	moveToTarget(evt) {
@@ -319,13 +412,14 @@ export default class ListMapper extends React.Component {
 		return (
 			<div style={containerStyle} className="list-mapper">
 				<div style={{ width: "38%" }}>
-					<h4>Linked</h4>
-					<SelectableList
-						items={this.state.selectedItems}
-						onSelect={this.targetSelect}
-						droppable={true}
-						onDrop={this.moveToTarget}
-					/>
+					<h4>{this.props.targetListTitle || "Linked"}</h4>
+					<FilteredSelectableList items={this.state.selectedItems}>
+						<SelectableList
+							onSelect={this.targetSelect}
+							droppable={true}
+							onDrop={this.moveToTarget}
+						/>
+					</FilteredSelectableList>
 				</div>
 				<ButtonBar
 					moveSelectedSourceToTarget={this.moveSelectedFromSourceToTarget}
@@ -334,12 +428,10 @@ export default class ListMapper extends React.Component {
 					moveAllToSource={this.moveAllToSource}
 				/>
 				<div style={{ width: "38%" }}>
-					<h4>Not Linked</h4>
-					<SelectableList
-						items={this.state.selectableItems}
-						onSelect={this.sourceSelect}
-						droppable={false}
-					/>
+					<h4>{this.props.sourceListTitle || "Not Linked"}</h4>
+					<FilteredSelectableList items={this.state.selectableItems}>
+						<SelectableList onSelect={this.sourceSelect} droppable={false} />
+					</FilteredSelectableList>
 				</div>
 			</div>
 		);
