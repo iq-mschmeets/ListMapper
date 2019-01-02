@@ -119,7 +119,7 @@ class FilteredSelectableList extends React.Component {
 			return React.cloneElement(child, _this.state);
 		});
 		return (
-			<div>
+			<div style={{ height: "100%" }}>
 				<FilterBar
 					onFilter={this.onFilter}
 					filterValue={this.state.filterText}
@@ -162,7 +162,7 @@ class SelectableList extends React.Component {
 		const lStyle = {
 			height: "100%",
 			minHeight: 300,
-			maxHeight: 600,
+			maxHeight: 500,
 			width: "100%",
 			border: "1px solid rgb(220,220,220)",
 			overflowY: "auto"
@@ -252,24 +252,30 @@ class ButtonBar extends React.Component {
 				<button
 					className="btn btn-lg btn-default"
 					onClick={this.props.moveSelectedSourceToTarget}
+					title="Adds links for selected items."
 				>
 					<span className="glyphicon glyphicon-chevron-left" />{" "}
 				</button>
 				<button
 					className="btn btn-lg  btn-default"
 					onClick={this.props.moveSelectedTargetToSource}
+					title="Deletes links for selected items."
 				>
 					<span className="glyphicon glyphicon-chevron-right" />{" "}
 				</button>
+
 				<button
+					style={{ marginTop: 30 }}
 					className="btn btn-lg  btn-default"
 					onClick={this.props.moveAllToTarget}
+					title="Move all from linked to not-linked. This deletes the links."
 				>
 					<span className="glyphicon glyphicon-backward" />{" "}
 				</button>
 				<button
 					className="btn btn-lg  btn-default"
 					onClick={this.props.moveAllToSource}
+					title="Move all from not-linked to linked. This adds the links."
 				>
 					<span className="glyphicon glyphicon-forward" />{" "}
 				</button>
@@ -277,7 +283,13 @@ class ButtonBar extends React.Component {
 		);
 	}
 }
-
+function SizeBadge(props) {
+	return React.createElement(
+		"div",
+		{},
+		React.createElement("span", { className: "badge" }, props.count)
+	);
+}
 export default class ListMapper extends React.Component {
 	constructor(props) {
 		super(props);
@@ -302,20 +314,24 @@ export default class ListMapper extends React.Component {
 		this.moveAllToSource = this.moveAllToSource.bind(this);
 	}
 	moveAllToTarget() {
-		this.setState({
-			selectedItems: this.state.selectedItems
-				.concat(this.state.selectableItems)
-				.sort(compare),
-			selectableItems: []
-		});
+		if (confirm("This will add links for ALL items, are you sure?")) {
+			this.setState({
+				selectedItems: this.state.selectedItems
+					.concat(this.state.selectableItems)
+					.sort(compare),
+				selectableItems: []
+			});
+		}
 	}
 	moveAllToSource() {
-		this.setState({
-			selectableItems: this.state.selectedItems
-				.concat(this.state.selectableItems)
-				.sort(compare),
-			selectedItems: []
-		});
+		if (confirm("This will delete links ALL items, are you sure?")) {
+			this.setState({
+				selectableItems: this.state.selectedItems
+					.concat(this.state.selectableItems)
+					.sort(compare),
+				selectedItems: []
+			});
+		}
 	}
 	moveSelectedFromSourceToTarget() {
 		console.log("moveSelecteFromSourToTarg ", this.selectedSources);
@@ -412,7 +428,12 @@ export default class ListMapper extends React.Component {
 		return (
 			<div style={containerStyle} className="list-mapper">
 				<div style={{ width: "38%" }}>
-					<h4>{this.props.targetListTitle || "Linked"}</h4>
+					<h4 className="list-title">
+						<div className="list-title-text">
+							{this.props.targetListTitle || "Linked"}
+						</div>
+						<SizeBadge count={this.state.selectedItems.length} />
+					</h4>
 					<FilteredSelectableList items={this.state.selectedItems}>
 						<SelectableList
 							onSelect={this.targetSelect}
@@ -428,7 +449,12 @@ export default class ListMapper extends React.Component {
 					moveAllToSource={this.moveAllToSource}
 				/>
 				<div style={{ width: "38%" }}>
-					<h4>{this.props.sourceListTitle || "Not Linked"}</h4>
+					<h4 className="list-title">
+						<div className="list-title-text">
+							{this.props.sourceListTitle || "Not Linked"}
+						</div>
+						<SizeBadge count={this.state.selectableItems.length} />
+					</h4>
 					<FilteredSelectableList items={this.state.selectableItems}>
 						<SelectableList onSelect={this.sourceSelect} droppable={false} />
 					</FilteredSelectableList>

@@ -28,3 +28,11 @@
 .list-unstyled {
 	border: 1px solid green;
 }
+.list-title {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+}
+.list-title-text {
+	color: #666;
+}
