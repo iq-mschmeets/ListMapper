@@ -7,6 +7,12 @@ import "./styles.css";
 
 export default class App extends React.Component {
 	render() {
+		const dispatcher = {
+			trigger: function(action, payload) {
+				console.log("dispatcher: ", payload);
+			}
+		};
+
 		// This will be filter provided data.
 		// Going to have to find the PK values from relationship,
 		// and I think use those as the values.
@@ -46,7 +52,7 @@ export default class App extends React.Component {
 		return (
 			<div className="App">
 				<h1>List Mapping</h1>
-				<ListMapper data={data} />
+				<ListMapper data={data} dispatcher={dispatcher} />
 			</div>
 		);
 	}

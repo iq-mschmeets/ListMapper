@@ -1,6 +1,8 @@
 import React from "react";
 import ReactDOM from "react-dom";
 
+import TreeSet from "./TreeSet.js";
+
 function compare(a, b) {
 	if (a.label < b.label) return -1;
 	if (a.label > b.label) return 1;
@@ -79,7 +81,7 @@ class FilterBar extends React.Component {
 			React.createElement("input", {
 				className: "form-control",
 				type: "search",
-				defaultValue: this.props.filterValue,
+				// defaultValue: this.props.filterValue,
 				value: this.props.filterValue,
 				onChange: this.onFilter,
 				placeholder: "filter list",
@@ -292,16 +294,22 @@ function SizeBadge(props) {
 	);
 }
 
+function itemListComparator(a, b) {}
+
+function getDefaultSet(collection) {
+	return new TreeSet(compare, collection);
+}
+
 export default class ListMapper extends React.Component {
 	constructor(props) {
 		super(props);
 
-		this.selectedSources = [];
-		this.selectedTargets = [];
+		this.selectedSources = new TreeSet(itemListComparator);
+		this.selectedTargets = new TreeSet(itemListComparator);
 
 		this.state = {
-			selectedItems: props.data.targetList.sort(compare),
-			selectableItems: props.data.sourceList.sort(compare)
+			linkedItems: getDefaultSet(props.data.targetList),
+			notLinkedItems: getDefaultSet(props.data.sourceList)
 		};
 		this.moveSelectedFromSourceToTarget = this.moveSelectedFromSourceToTarget.bind(
 			this
@@ -317,28 +325,40 @@ export default class ListMapper extends React.Component {
 	}
 	moveAllToTarget() {
 		if (confirm("This will add links for ALL items, are you sure?")) {
+			let newnotLinkedItems = this.state.linkedItems.concat(
+				this.state.notLinkedItems.toArray()
+			);
 			this.setState({
-				selectedItems: this.state.selectedItems
-					.concat(this.state.selectableItems)
-					.sort(compare),
-				selectableItems: []
+				linkedItems: newnotLinkedItems,
+				notLinkedItems: getDefaultSet([])
+			});
+
+			this.dispatch({
+				action: "LIST_MAPPER_ADD_LINKS",
+				data: newnotLinkedItems.toArray()
 			});
 		}
 	}
 	moveAllToSource() {
 		if (confirm("This will delete links ALL items, are you sure?")) {
+			let newnotLinkedItems = this.state.linkedItems.concat(
+				this.state.notLinkedItems.toArray()
+			);
 			this.setState({
-				selectableItems: this.state.selectedItems
-					.concat(this.state.selectableItems)
-					.sort(compare),
-				selectedItems: []
+				notLinkedItems: newnotLinkedItems,
+				linkedItems: getDefaultSet([])
+			});
+
+			this.dispatch({
+				action: "LIST_MAPPER_ADD_LINKS",
+				data: newnotLinkedItems.toArray()
 			});
 		}
 	}
 	moveSelectedFromSourceToTarget() {
 		console.log("moveSelecteFromSourToTarg ", this.selectedSources);
 		let sources = this.selectedSources;
-		let newSource = this.state.selectableItems.filter(function(item) {
+		let newSource = this.state.notLinkedItems.filter(function(item) {
 			return sources.findIndex(function(source) {
 				return source.value === item.value;
 			}) >= 0
@@ -346,8 +366,15 @@ export default class ListMapper extends React.Component {
 				: true;
 		});
 
-		let newTarget = this.state.selectedItems.concat(this.selectedSources);
-		console.log("moveSelectedFromSourceToTarget ", newTarget, newSource);
+		let newTarget = this.state.linkedItems.concat(
+			this.selectedSources.toArray()
+		);
+
+		this.dispatch({
+			action: "LIST_MAPPER_ADD_LINKS",
+			data: this.selectedSources.toArray()
+		});
+
 		newSource.forEach(function(item) {
 			item.selected = false;
 		});
@@ -355,17 +382,22 @@ export default class ListMapper extends React.Component {
 		newTarget.forEach(function(item) {
 			item.selected = false;
 		});
-		this.selectedTargets = [];
-		this.selectedSources = [];
+		this.selectedTargets = getDefaultSet([]);
+		this.selectedSources = getDefaultSet([]);
 
 		this.setState({
-			selectedItems: newTarget.sort(compare),
-			selectableItems: newSource.sort(compare)
+			linkedItems: newTarget,
+			notLinkedItems: newSource
 		});
+	}
+	dispatch(payload) {
+		if (this.props.dispatcher) {
+			this.props.dispatcher.trigger(payload.action, payload);
+		}
 	}
 	moveSelectedFromTargetToSource() {
 		let targets = this.selectedTargets;
-		let newTarget = this.state.selectedItems.filter(function(item) {
+		let newTarget = this.state.linkedItems.filter(function(item) {
 			return targets.findIndex(function(target) {
 				return target.value === item.value;
 			}) >= 0
@@ -373,7 +405,14 @@ export default class ListMapper extends React.Component {
 				: true;
 		});
 
-		let newSource = this.state.selectableItems.concat(this.selectedTargets);
+		let newSource = this.state.notLinkedItems.concat(
+			this.selectedTargets.toArray()
+		);
+
+		this.dispatch({
+			action: "LIST_MAPPER_DELETE_LINKS",
+			data: this.selectedTargets.toArray()
+		});
 
 		newSource.forEach(function(item) {
 			item.selected = false;
@@ -383,12 +422,12 @@ export default class ListMapper extends React.Component {
 			item.selected = false;
 		});
 
-		this.selectedTargets = [];
-		this.selectedSources = [];
+		this.selectedTargets = getDefaultSet([]);
+		this.selectedSources = getDefaultSet([]);
 
 		this.setState({
-			selectedItems: newTarget.sort(compare),
-			selectableItems: newSource.sort(compare)
+			linkedItems: newTarget,
+			notLinkedItems: newSource
 		});
 	}
 	sourceSelect(obj) {
@@ -396,29 +435,29 @@ export default class ListMapper extends React.Component {
 			return target.value === obj.value;
 		});
 		if (index >= 0) {
-			this.selectedSources = this.selectedSources.splice(index, 0, obj);
+			this.selectedSources.remove(obj);
 		} else {
-			this.selectedSources = this.selectedSources.concat([obj]);
+			this.selectedSources.add(obj);
 		}
 	}
 	targetSelect(obj) {
-		let index = this.selectedTargets.findIndex(function(target) {
-			return target.value === obj.value;
-		});
-		if (index >= 0) {
-			this.selectedTargets = this.selectedTargets.splice(index, 0, obj);
+		if (this.selectedTargets.has(obj)) {
+			this.selectedTargets.remove(obj);
 		} else {
-			this.selectedTargets = this.selectedTargets.concat([obj]);
+			this.selectedTargets.add(obj);
 		}
-
-		this.selectedTargets = this.selectedTargets.concat([obj]);
 	}
 	moveToTarget(evt) {
 		console.log("onDrop==>moveToTarget ", evt);
-		this.selectedSources.push(evt.data.item);
+		this.selectedSources.add(evt.data.item);
 		this.moveSelectedFromSourceToTarget();
 	}
-	componentWillReceiveProps(newProps) {}
+	componentWillReceiveProps(newProps) {
+		this.state = {
+			linkedItems: getDefaultSet(newProps.data.targetList),
+			notLinkedItems: getDefaultSet(newProps.data.sourceList)
+		};
+	}
 	render() {
 		const containerStyle = {
 			width: "100%",
@@ -434,9 +473,9 @@ export default class ListMapper extends React.Component {
 						<div className="list-title-text">
 							{this.props.targetListTitle || "Linked"}
 						</div>
-						<SizeBadge count={this.state.selectedItems.length} />
+						<SizeBadge count={this.state.linkedItems.size()} />
 					</h4>
-					<FilteredSelectableList items={this.state.selectedItems}>
+					<FilteredSelectableList items={this.state.linkedItems.toArray()}>
 						<SelectableList
 							onSelect={this.targetSelect}
 							droppable={true}
@@ -455,9 +494,9 @@ export default class ListMapper extends React.Component {
 						<div className="list-title-text">
 							{this.props.sourceListTitle || "Not Linked"}
 						</div>
-						<SizeBadge count={this.state.selectableItems.length} />
+						<SizeBadge count={this.state.notLinkedItems.size()} />
 					</h4>
-					<FilteredSelectableList items={this.state.selectableItems}>
+					<FilteredSelectableList items={this.state.notLinkedItems.toArray()}>
 						<SelectableList onSelect={this.sourceSelect} droppable={false} />
 					</FilteredSelectableList>
 				</div>
