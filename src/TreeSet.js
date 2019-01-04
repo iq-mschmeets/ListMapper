@@ -53,6 +53,9 @@ export default class TreeSet {
 
 	/** Returns a new TreeSet including values in array argument. */
 	concat(arr) {
+		if (!arr) {
+			arr = [];
+		}
 		for (var i = 0; i < arr.length; i++) {
 			this.add(arr[i]);
 		}
@@ -125,12 +128,20 @@ export default class TreeSet {
 	}
 
 	add(element) {
-		let index = this.binarySearch(element);
+		let index = this.elements.findIndex(function(val) {
+			return element.label == val.label;
+		});
+		if (index >= 0) {
+			return false;
+		}
+
+		index = this.binarySearch(element);
 		if (index < 0) {
 			index = -index - 1;
 		}
 		this.elements.splice(index, 0, element);
 		this.length++;
+		return true;
 	}
 
 	/**

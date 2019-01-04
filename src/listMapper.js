@@ -4,9 +4,10 @@ import ReactDOM from "react-dom";
 import TreeSet from "./TreeSet.js";
 
 function compare(a, b) {
-	if (a.label < b.label) return -1;
-	if (a.label > b.label) return 1;
-	return 0;
+	return ("" + a.label).localeCompare(b.label);
+	//if (a.label < b.label) return -1;
+	//if (a.label > b.label) return 1;
+	//return 0;
 }
 class SelectableListItem extends React.Component {
 	constructor(props) {
@@ -255,31 +256,37 @@ class ButtonBar extends React.Component {
 					className="btn btn-lg btn-default"
 					onClick={this.props.moveSelectedSourceToTarget}
 					title="Adds links for selected items."
+					disabled={this.props.targetCount < 1 ? true : false}
 				>
-					<span className="glyphicon glyphicon-chevron-left" />{" "}
+					<span className="glyphicon glyphicon-chevron-left" />
+					<span className="label"> Link Selected</span>
 				</button>
 				<button
 					className="btn btn-lg  btn-default"
 					onClick={this.props.moveSelectedTargetToSource}
 					title="Deletes links for selected items."
+					disabled={this.props.sourceCount < 1 ? true : false}
 				>
-					<span className="glyphicon glyphicon-chevron-right" />{" "}
+					<span className="glyphicon glyphicon-chevron-right" />
+					<span className="label"> Un-Link Selected</span>
 				</button>
 
 				<button
 					style={{ marginTop: 30 }}
 					className="btn btn-lg  btn-default"
 					onClick={this.props.moveAllToTarget}
-					title="Move all from linked to not-linked. This deletes the links."
+					title="Move all from not-linked to linked. This add links."
 				>
-					<span className="glyphicon glyphicon-backward" />{" "}
+					<span className="glyphicon glyphicon-backward" />
+					<span className="label"> Link All</span>
 				</button>
 				<button
 					className="btn btn-lg  btn-default"
 					onClick={this.props.moveAllToSource}
-					title="Move all from not-linked to linked. This adds the links."
+					title="Move all from linked to not-linked. This deletes links."
 				>
-					<span className="glyphicon glyphicon-forward" />{" "}
+					<span className="glyphicon glyphicon-forward" />
+					<span className="label"> Un-Link All</span>
 				</button>
 			</div>
 		);
@@ -304,12 +311,11 @@ export default class ListMapper extends React.Component {
 	constructor(props) {
 		super(props);
 
-		this.selectedSources = new TreeSet(itemListComparator);
-		this.selectedTargets = new TreeSet(itemListComparator);
-
 		this.state = {
 			linkedItems: getDefaultSet(props.data.targetList),
-			notLinkedItems: getDefaultSet(props.data.sourceList)
+			notLinkedItems: getDefaultSet(props.data.sourceList),
+			selectedSources: getDefaultSet([]),
+			selectedTargets: getDefaultSet([])
 		};
 		this.moveSelectedFromSourceToTarget = this.moveSelectedFromSourceToTarget.bind(
 			this
@@ -340,7 +346,7 @@ export default class ListMapper extends React.Component {
 		}
 	}
 	moveAllToSource() {
-		if (confirm("This will delete links ALL items, are you sure?")) {
+		if (confirm("This will delete ALL links, are you sure?")) {
 			let newnotLinkedItems = this.state.linkedItems.concat(
 				this.state.notLinkedItems.toArray()
 			);
@@ -356,7 +362,8 @@ export default class ListMapper extends React.Component {
 		}
 	}
 	moveSelectedFromSourceToTarget() {
-		let sources = this.selectedSources;
+		let sources = this.state.selectedSources;
+
 		let newSource = this.state.notLinkedItems.filter(function(item) {
 			return sources.findIndex(function(source) {
 				return source.value === item.value;
@@ -365,13 +372,11 @@ export default class ListMapper extends React.Component {
 				: true;
 		});
 
-		let newTarget = this.state.linkedItems.concat(
-			this.selectedSources.toArray()
-		);
+		let newTarget = this.state.linkedItems.concat(sources.toArray());
 
 		this.dispatch({
 			action: "LIST_MAPPER_ADD_LINKS",
-			data: this.selectedSources.toArray()
+			data: sources.toArray()
 		});
 
 		newSource.forEach(function(item) {
@@ -381,12 +386,12 @@ export default class ListMapper extends React.Component {
 		newTarget.forEach(function(item) {
 			item.selected = false;
 		});
-		this.selectedTargets = getDefaultSet([]);
-		this.selectedSources = getDefaultSet([]);
 
 		this.setState({
 			linkedItems: newTarget,
-			notLinkedItems: newSource
+			notLinkedItems: newSource,
+			selectedSources: getDefaultSet([]),
+			selectedTargets: getDefaultSet([])
 		});
 	}
 	dispatch(payload) {
@@ -395,7 +400,8 @@ export default class ListMapper extends React.Component {
 		}
 	}
 	moveSelectedFromTargetToSource() {
-		let targets = this.selectedTargets;
+		let targets = this.state.selectedTargets;
+
 		let newTarget = this.state.linkedItems.filter(function(item) {
 			return targets.findIndex(function(target) {
 				return target.value === item.value;
@@ -404,13 +410,11 @@ export default class ListMapper extends React.Component {
 				: true;
 		});
 
-		let newSource = this.state.notLinkedItems.concat(
-			this.selectedTargets.toArray()
-		);
+		let newSource = this.state.notLinkedItems.concat(targets.toArray());
 
 		this.dispatch({
 			action: "LIST_MAPPER_DELETE_LINKS",
-			data: this.selectedTargets.toArray()
+			data: targets.toArray()
 		});
 
 		newSource.forEach(function(item) {
@@ -421,41 +425,41 @@ export default class ListMapper extends React.Component {
 			item.selected = false;
 		});
 
-		this.selectedTargets = getDefaultSet([]);
-		this.selectedSources = getDefaultSet([]);
-
 		this.setState({
 			linkedItems: newTarget,
-			notLinkedItems: newSource
+			notLinkedItems: newSource,
+			selectedSources: getDefaultSet([]),
+			selectedTargets: getDefaultSet([])
 		});
 	}
 	sourceSelect(obj) {
-		let index = this.selectedSources.findIndex(function(target) {
-			return target.value === obj.value;
-		});
-		if (index >= 0) {
-			this.selectedSources.remove(obj);
+		if (this.state.selectedSources.has(obj)) {
+			this.state.selectedSources.remove(obj);
 		} else {
-			this.selectedSources.add(obj);
+			this.state.selectedSources.add(obj);
 		}
+		this.setState({ selectedSources: this.state.selectedSources.concat() });
 	}
 	targetSelect(obj) {
-		if (this.selectedTargets.has(obj)) {
-			this.selectedTargets.remove(obj);
+		if (this.state.selectedTargets.has(obj)) {
+			this.state.selectedTargets.remove(obj);
 		} else {
-			this.selectedTargets.add(obj);
+			this.state.selectedTargets.add(obj);
 		}
+		this.setState({ selectedTargets: this.state.selectedTargets.concat() });
 	}
 	moveToTarget(evt) {
 		console.log("onDrop==>moveToTarget ", evt);
-		this.selectedSources.add(evt.data.item);
+		this.state.selectedSources.add(evt.data.item);
 		this.moveSelectedFromSourceToTarget();
 	}
 	componentWillReceiveProps(newProps) {
-		this.state = {
+		this.setState({
 			linkedItems: getDefaultSet(newProps.data.targetList),
-			notLinkedItems: getDefaultSet(newProps.data.sourceList)
-		};
+			notLinkedItems: getDefaultSet(newProps.data.sourceList),
+			selectedSources: getDefaultSet([]),
+			selectedTargets: getDefaultSet([])
+		});
 	}
 	render() {
 		const containerStyle = {
@@ -487,6 +491,8 @@ export default class ListMapper extends React.Component {
 					moveSelectedTargetToSource={this.moveSelectedFromTargetToSource}
 					moveAllToTarget={this.moveAllToTarget}
 					moveAllToSource={this.moveAllToSource}
+					targetCount={this.state.selectedSources.size()}
+					sourceCount={this.state.selectedTargets.size()}
 				/>
 				<div style={{ width: "38%" }}>
 					<h4 className="list-title">
