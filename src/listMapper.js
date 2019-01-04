@@ -356,7 +356,6 @@ export default class ListMapper extends React.Component {
 		}
 	}
 	moveSelectedFromSourceToTarget() {
-		console.log("moveSelecteFromSourToTarg ", this.selectedSources);
 		let sources = this.selectedSources;
 		let newSource = this.state.notLinkedItems.filter(function(item) {
 			return sources.findIndex(function(source) {
