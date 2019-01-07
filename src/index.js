@@ -51,7 +51,7 @@ export default class App extends React.Component {
 
 		return (
 			<div className="App">
-				<h1>List Mapping</h1>
+				<h1>Link Mapping</h1>
 				<ListMapper data={data} dispatcher={dispatcher} />
 			</div>
 		);
